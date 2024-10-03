@@ -6,7 +6,7 @@ LDFLAGS := -s -static
 default: all
 
 init:
-	$(CC) $(CFLAGS) $(LDFLAGS) main.c -o init
+	$(CC) $(CFLAGS) $(LDFLAGS) -lpthread main.c -o init
 	
 .PHONY: clean install all 
 

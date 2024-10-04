@@ -1,7 +1,12 @@
-#include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <stdio.h>
+
+#define LEN(x)	(sizeof (x) / sizeof *(x))
+#define TIMEO	30
 
 sigset_t set_of_signals;
 
@@ -19,10 +24,17 @@ static char * const agetty_command[] = {"/sbin/agetty","--noclear", "--autologin
 
 static void mount();
 
+void wait_signal_for_close(int pid){
+    
+	  waitpid(pid, NULL, WNOHANG);
+    pthread_exit(0);
+    
+}
+
 static void launch_agetty(){
   int result;
-  if(fork() == 0){
 
+  if(fork() == 0){
 		sigprocmask(SIG_UNBLOCK, &set_of_signals, NULL);
 		setsid();
 		result = execvp(agetty_command[0], agetty_command);
@@ -30,8 +42,7 @@ static void launch_agetty(){
       printf("Can't execvp\n");
     }
 		perror("execvp");
-    _exit(1);
-  }  
+  }
 }
 
 static void mount(){
@@ -50,31 +61,45 @@ static void mount(){
 }
 
 void* mount_proc(void*){
-   
-  if(fork() == 0){
+  int pid; 
+  if((pid = fork())){
+    wait_signal_for_close(pid);
+  }else{
 		setsid();
 		execvp(mount_proc_command[0],mount_proc_command );
-  }  
-
+  } 
   return NULL;
 }
 
 void* mount_sys(void*){
-   
-  if(fork() == 0){
+  int pid; 
+  if((pid = fork())){
+    wait_signal_for_close(pid);
+  }else{
 		setsid();
 		execvp(mount_sys_command[0],mount_sys_command );
   }  
-
   return NULL;
 }
 
 void* mount_dev(void*){
-  if(fork() == 0){
+  int pid;
+  if((pid = fork())){
+    wait_signal_for_close(pid);
+  }else{
 		setsid();
 		execvp(mount_dev_command[0],mount_dev_command );
   }  
   return NULL;
+}
+
+
+static void
+sigreap(void)
+{
+	while (waitpid(-1, NULL, WNOHANG) > 0)
+		;
+	alarm(TIMEO);
 }
 
 int main(){
@@ -97,14 +122,18 @@ int main(){
   pthread_create(&mount_thread, NULL , mount_sys, NULL) ;
 
   pthread_create(&mount_thread, NULL , mount_dev, NULL) ;
-  //mount();
 
   launch_agetty();
-  //printf("executed mount\n");
+  
   int signal;
   while(1){
     alarm(30) ;
     sigwait(&set_of_signals,&signal);
+    
+    if(signal == SIGCHLD || signal == SIGALRM){
+      sigreap();
+    }
+    
   }
 
   return 0;

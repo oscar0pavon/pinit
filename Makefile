@@ -15,5 +15,6 @@ clean:
 
 install:
 	cp /root/init/stinit/init /root/boot/disk/sbin/init
+	cp /root/init/stinit/init /sbin/pinit
 
 all: init

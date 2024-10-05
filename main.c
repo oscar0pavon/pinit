@@ -9,9 +9,13 @@
 #include <sys/stat.h>
 #include <sys/mount.h>
 
+#include <string.h>
+
 #define TIMEO	30
 
 sigset_t set_of_signals;
+
+static char * const ls_command[] = {"/bin/ls",NULL};
 
 static char * const mount_proc_command[] = {"/bin/mount",
   "-o", "nosuid,noexec,nodev", "-t", "proc", "proc", "/proc",NULL};
@@ -32,7 +36,16 @@ static char * const agetty_command[] = {"/sbin/agetty","--noclear", "--autologin
 static char * const pts_command[] = {"/bin/mount","-n", "-t" , "devpts", 
   "-o", "gid=5,mode=0620", "devpts", "/dev/pts", NULL};
 
+//wifi
 
+
+static char * const ip_set_up_command[] = {"/sbin/ip","link", "set" , "wlan0", 
+  "up", NULL};
+static char * const wpa_command[] = {"/sbin/wpa_supplicant","-B", "-c" , "/wifi", 
+  "-i", "wlan0", NULL};
+static char * const ip_addr_command[] = {"/sbin/ip","addr", "add" , "192.168.0.23/24", 
+  "dev","wlan0", NULL};
+static char * const ip_route_command[] = {"/sbin/ip","route", "add","default","via", "192.168.0.1", "src", "192.168.0.23","dev" , "wlan0", NULL};
 
 void wait_signal_for_close(int pid){
     
@@ -98,6 +111,46 @@ void* mount_dev(void*){
   return NULL;
 }
 
+static bool signal_child = false;
+static void manage_signal(int sig){
+  signal_child = true;
+}
+
+//not work
+sigset_t set_of_signals_thread;
+void* test_sigchld(void*){
+
+  sigfillset(&set_of_signals_thread);
+  sigprocmask(SIG_UNBLOCK, &set_of_signals_thread, NULL);
+
+    struct sigaction action;
+    memset(&action, 0, sizeof(struct sigaction));
+    action.sa_handler = manage_signal;
+
+    //sigaction(SIGCHLD,&action, NULL);
+
+		sigprocmask(SIG_UNBLOCK, &set_of_signals, NULL);
+
+  int signal;
+  int pid; 
+  if((pid = fork())){
+    sigwait(&set_of_signals_thread,&signal);
+    while(1){
+      if(signal == SIGCHLD){
+        printf("ls signal child\n");
+	      waitpid(pid, NULL, WNOHANG);
+        pthread_exit(0);
+      }
+    }
+  }else{
+		sigprocmask(SIG_UNBLOCK, &set_of_signals, NULL);
+    sigprocmask(SIG_UNBLOCK, &set_of_signals_thread, NULL);
+
+		setsid();
+		execvp(ls_command[0],ls_command);
+  }  
+}
+
 
 static void signal_reap(void)
 {
@@ -144,6 +197,17 @@ int main(){
   pthread_create(&mount_thread, NULL , execute_thread_command, ln_fd_command) ;
 
   pthread_create(&mount_thread, NULL , execute_thread_command, pts_command) ;
+ 
+
+  //wifi
+  //pthread_t ip_add_thread;
+// pthread_create(&mount_thread, NULL , execute_thread_command, ip_set_up_command) ;
+ // pthread_create(&mount_thread, NULL , execute_thread_command, wpa_command) ;
+  //pthread_create(&ip_add_thread, NULL , execute_thread_command, ip_addr_command) ;
+  //pthread_join(ip_add_thread,NULL);
+  //pthread_create(&mount_thread, NULL , execute_thread_command, ip_route_command) ;
+
+  pthread_create(&mount_thread,NULL, test_sigchld, NULL);
 
   launch_agetty();
   

@@ -18,7 +18,7 @@ sigset_t set_of_signals;
 
 int symlink(const char *target, const char *linkpath);
 
-static char * const ls_command[] = {"/bin/ls",NULL};
+static char * const ls_command[] = {"/bin/echo","hello",NULL};
 
 
 static char * const mount_sys_commnad[] = {"sysfs","/sys", "sysfs"};
@@ -36,7 +36,7 @@ static char * const pts_command[] = {"/bin/mount","-n", "-t" , "devpts",
   "-o", "gid=5,mode=0620", "devpts", "/dev/pts", NULL};
 
 //wifi
-#define DEV "eth0"
+#define DEV "wlan0"
 
 static char * const ip_set_up_command[] = {"/sbin/ip","link", "set" ,DEV, 
   "up", NULL};
@@ -99,43 +99,26 @@ void* mount_threaded(void*command_line){
 
 
 
-static bool signal_child = false;
-static void manage_signal(int sig){
-  signal_child = true;
-}
-
-//not work
-sigset_t set_of_signals_thread;
-void* test_sigchld(void*){
-
-  sigfillset(&set_of_signals_thread);
-  sigprocmask(SIG_UNBLOCK, &set_of_signals_thread, NULL);
-
-    struct sigaction action;
-    memset(&action, 0, sizeof(struct sigaction));
-    action.sa_handler = manage_signal;
-
-    //sigaction(SIGCHLD,&action, NULL);
-
-		sigprocmask(SIG_UNBLOCK, &set_of_signals, NULL);
+void* set_ip(void*){
 
   int signal;
   int pid; 
   if((pid = fork())){
-    sigwait(&set_of_signals_thread,&signal);
+    
     while(1){
+      sigwait(&set_of_signals,&signal);
       if(signal == SIGCHLD){
-        printf("ls signal child\n");
 	      waitpid(pid, NULL, WNOHANG);
-        pthread_exit(0);
+        pthread_t thread;
+        pthread_create(&thread, NULL , execute_thread_command, ip_route_command) ;
+
+        break;
       }
     }
   }else{
 		sigprocmask(SIG_UNBLOCK, &set_of_signals, NULL);
-    sigprocmask(SIG_UNBLOCK, &set_of_signals_thread, NULL);
-
 		setsid();
-		execvp(ls_command[0],ls_command);
+		execvp(ip_addr_command[0],ip_addr_command);
   }  
 }
 
@@ -160,6 +143,7 @@ int main(){
   sigfillset(&set_of_signals);
   sigprocmask(SIG_BLOCK, &set_of_signals, NULL);
   
+
   pthread_t mount_thread;
   pthread_t mount_dev_thread;
 
@@ -205,12 +189,9 @@ int main(){
   //wifi
   pthread_t ip_add_thread;
   pthread_create(&mount_thread, NULL , execute_thread_command, ip_set_up_command) ;
- // pthread_create(&mount_thread, NULL , execute_thread_command, wpa_command) ;
-  pthread_create(&ip_add_thread, NULL , execute_thread_command, ip_addr_command) ;
-  pthread_join(ip_add_thread,NULL);
-  pthread_create(&mount_thread, NULL , execute_thread_command, ip_route_command) ;
-
-  pthread_create(&mount_thread,NULL, test_sigchld, NULL);
+  pthread_create(&mount_thread, NULL , execute_thread_command, wpa_command) ;
+  
+  set_ip(NULL);
 
   launch_agetty();
   
@@ -218,7 +199,6 @@ int main(){
   while(1){
     alarm(30) ;
     sigwait(&set_of_signals,&signal);
-    
     if(signal == SIGCHLD || signal == SIGALRM){
       signal_reap();
     }

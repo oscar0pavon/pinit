@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
+#include <sys/swap.h>
 
 #include <string.h>
 #define NULL 0
@@ -18,15 +19,20 @@ sigset_t set_of_signals;
 
 int symlink(const char *target, const char *linkpath);
 
-static char * const ls_command[] = {"/bin/echo","hello",NULL};
+static char * const ls_command[] = {"/bin/ls",NULL};
 
 
 static char * const mount_sys_commnad[] = {"sysfs","/sys", "sysfs"};
-
 static char * const mount_proc_commnad[] = {"proc","/proc", "proc"};
 static char * const mount_dev_commnad[] = {"dev","/dev", "devtmpfs"};
 static char * const mount_pts_commnad[] = {"devpts","/dev/pts", "devpts"};
 
+static char * const mount_boot_commnad[] = {"/dev/nvme0n1p1","/boot", "vfat"};
+
+static char * const mount_shm_commnad[] = {"tmpfs","/dev/shm", "tmpfs"};
+
+static char * const mount_shm_command_mount[] = {"/bin/mount", "tmpfs","/dev/shm",
+  "-t", "tmpfs","-o", "nosuid,nodev", NULL};
 
 
 static char * const agetty_command[] = {"/sbin/agetty","--noclear", "--autologin", "root",
@@ -168,6 +174,10 @@ int main(){
   pthread_join(mount_dev_thread,NULL);
   
 
+  struct MountCommand mount_boot_struct = {.arguments = mount_boot_commnad, 
+                                          .mode = 0}; 
+
+  pthread_create(&mount_thread, NULL , mount_threaded, &mount_boot_struct);
 
 
   symlink("/proc/self/fd/0","/dev/stdin");
@@ -178,12 +188,20 @@ int main(){
 
  
   mkdir("/dev/pts", S_IRWXU | S_IRWXG | S_IRWXO);
+  mkdir("/dev/shm", S_IRWXU | S_IRWXG | S_IRWXO);
   
 
   struct MountCommand mount_pts_struct = {.arguments = mount_pts_commnad, 
                                           .mode = 0}; 
   //need chmod 0666 /dev/pts/ptmx
   pthread_create(&mount_thread, NULL , mount_threaded, &mount_pts_struct);
+
+  struct MountCommand mount_shm_struct = {.arguments = mount_shm_commnad, 
+                                         .mode = MS_NOSUID | MS_NODEV}; 
+  
+  pthread_create(&mount_thread, NULL , mount_threaded, &mount_shm_struct);
+
+ // pthread_create(&mount_thread, NULL , execute_thread_command, mount_shm_command_mount) ;
 
 
   //wifi
@@ -192,6 +210,8 @@ int main(){
   pthread_create(&mount_thread, NULL , execute_thread_command, wpa_command) ;
   
   set_ip(NULL);
+
+  swapon("/dev/nvme0n1p4", SWAP_FLAG_DISCARD);
 
   launch_agetty();
   

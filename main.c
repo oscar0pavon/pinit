@@ -53,11 +53,43 @@ static char * const ip_addr_command[] = {"/sbin/ip","addr", "add" , "192.168.0.2
 static char * const ip_route_command[] = {"/sbin/ip","route", "add","default","via",
   "192.168.0.1", "src", "192.168.0.23","dev" , DEV, NULL};
 
+static char * const ip_addr_lo_command[] = {"/sbin/ip","addr", "add" ,
+  "127.0.0.1/8", "label", "lo", 
+  "dev","lo", NULL};
+
+static char* const ip_lo_up[] = {"/sbin/ip","link", 
+  "set", "lo", "up",  NULL};
+
 void wait_signal_for_close(int pid){
     
 	  waitpid(pid, NULL, WNOHANG);
     pthread_exit(0);
     
+}
+
+void setup_loopback() {
+  int pid;
+  int signal;
+  if ((pid = fork())) {
+    while (1) {
+      sigwait(&set_of_signals, &signal);
+      if (signal == SIGCHLD) {
+        waitpid(pid, NULL, WNOHANG);
+
+        if (fork() == 0) {
+          sigprocmask(SIG_UNBLOCK, &set_of_signals, NULL);
+          setsid();
+          execvp(ip_lo_up[0], ip_lo_up);
+        }
+
+        break;
+      }
+    }
+  } else {
+    sigprocmask(SIG_UNBLOCK, &set_of_signals, NULL);
+    setsid();
+    execvp(ip_addr_lo_command[0], ip_addr_lo_command);
+  }
 }
 
 void* execute_thread_command(void*command_line){
@@ -210,6 +242,8 @@ int main(){
   pthread_create(&mount_thread, NULL , execute_thread_command, wpa_command) ;
   
   set_ip(NULL);
+
+  setup_loopback();
 
   swapon("/dev/nvme0n1p4", SWAP_FLAG_DISCARD);
 

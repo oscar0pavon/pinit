@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <time.h>
 #define _XOPEN_SOURCE 200809L
 #include <signal.h>
 #include <unistd.h>
@@ -159,8 +160,14 @@ static void signal_reap(void)
 }
 
 int main(){
-  printf("Pavon Init\n");
   
+  FILE* boot_time = fopen("boot_time","w");
+  if(!boot_time){
+    printf("Can't create boot file\n");
+  }
+  
+  clock_t init_time = clock();
+
   if(getpid() != 1){
     printf("Need to be PID 1\n");
     _exit(1);
@@ -239,6 +246,13 @@ int main(){
   swapon("/dev/nvme0n1p4", SWAP_FLAG_DISCARD);
 
   launch_agetty();
+
+  init_time = clock() - init_time;
+  double time_taken = ((double)init_time)/CLOCKS_PER_SEC;
+
+  fprintf(boot_time,"init config time = %f seconds\n",time_taken);
+
+  fclose(boot_time);
   
   int signal;
   while(1){

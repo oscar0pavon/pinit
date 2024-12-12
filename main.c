@@ -1,4 +1,3 @@
-#include <complex.h>
 #include <pthread.h>
 #define _XOPEN_SOURCE 200809L
 #include <signal.h>
@@ -12,15 +11,12 @@
 #include <sys/swap.h>
 
 #include <string.h>
-#define NULL 0
+
 #define TIMEO	30
 
 sigset_t set_of_signals;
 
 int symlink(const char *target, const char *linkpath);
-
-static char * const ls_command[] = {"/bin/ls",NULL};
-
 
 static char * const mount_sys_commnad[] = {"sysfs","/sys", "sysfs"};
 static char * const mount_proc_commnad[] = {"proc","/proc", "proc"};
@@ -31,15 +27,9 @@ static char * const mount_boot_commnad[] = {"/dev/nvme0n1p1","/boot", "vfat"};
 
 static char * const mount_shm_commnad[] = {"tmpfs","/dev/shm", "tmpfs"};
 
-static char * const mount_shm_command_mount[] = {"/bin/mount", "tmpfs","/dev/shm",
-  "-t", "tmpfs","-o", "nosuid,nodev", NULL};
+static char * const mount_run_commnad[] = {"tmpfs","/run", "tmpfs"};
 
-
-static char * const agetty_command[] = {"/sbin/agetty","--noclear", "--autologin", "root",
-  "tty1", "9600",NULL};
-
-static char * const pts_command[] = {"/bin/mount","-n", "-t" , "devpts", 
-  "-o", "gid=5,mode=0620", "devpts", "/dev/pts", NULL};
+static char * const agetty_command[] = {"/bin/mingetty", "--autologin=root","tty1",NULL};
 
 //wifi
 #define DEV "wlan0"
@@ -112,7 +102,7 @@ static void launch_agetty(){
 		setsid();
 		result = execvp(agetty_command[0], agetty_command);
     if(result == -1){
-      printf("Can't execvp\n");
+      printf("Can't execvp %s\n",agetty_command[0]);
     }
 		perror("execvp");
   }
@@ -225,7 +215,6 @@ int main(){
 
   struct MountCommand mount_pts_struct = {.arguments = mount_pts_commnad, 
                                           .mode = 0}; 
-  //need chmod 0666 /dev/pts/ptmx
   pthread_create(&mount_thread, NULL , mount_threaded, &mount_pts_struct);
 
   struct MountCommand mount_shm_struct = {.arguments = mount_shm_commnad, 
@@ -233,8 +222,10 @@ int main(){
   
   pthread_create(&mount_thread, NULL , mount_threaded, &mount_shm_struct);
 
- // pthread_create(&mount_thread, NULL , execute_thread_command, mount_shm_command_mount) ;
 
+  struct MountCommand mount_run_struct = {.arguments = mount_run_commnad, 
+                                          .mode = 0}; 
+  pthread_create(&mount_thread, NULL , mount_threaded, &mount_run_struct);
 
   //wifi
   pthread_t ip_add_thread;

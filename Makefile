@@ -10,7 +10,7 @@ clean:
 	rm -f pinit
 
 install:
-	cp pinit /root/virtual_machine/disk/sbin/init
+	cp pinit /root/virtual_machine/disk/sbin/pinit
 
 release:
 	cp pinit /sbin/pinit

@@ -12,5 +12,5 @@ install:
 	cp pinit /root/virtual_machine/disk/sbin/pinit
 
 release:
-	cp pinit /sbin/pinit
+	cp pinit /pinit
 

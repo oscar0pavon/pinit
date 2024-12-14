@@ -30,7 +30,9 @@ static char * const mount_shm_commnad[] = {"tmpfs","/dev/shm", "tmpfs"};
 
 static char * const mount_run_commnad[] = {"tmpfs","/run", "tmpfs"};
 
-static char * const agetty_command[] = {"/bin/mingetty", "--autologin=root","tty1",NULL};
+static char * const mingetty1[] = {"/bin/mingetty", "--autologin=root","tty1",NULL};
+
+static char * const mingetty2[] = {"/bin/mingetty", "--autologin=root","tty2",NULL};
 
 //wifi
 #define DEV "wlan0"
@@ -95,15 +97,15 @@ void* execute_thread_command(void*command_line){
   return NULL;
 }
 
-static void launch_agetty(){
+static void launch_mingetty(const char* mingetty_exec,char* const arguments[]){
   int result;
 
   if(fork() == 0){
 		sigprocmask(SIG_UNBLOCK, &set_of_signals, NULL);
 		setsid();
-		result = execvp(agetty_command[0], agetty_command);
+		result = execvp(mingetty_exec, arguments);
     if(result == -1){
-      printf("Can't execvp %s\n",agetty_command[0]);
+      printf("Can't execvp %s\n",mingetty1[0]);
     }
 		perror("execvp");
   }
@@ -245,7 +247,8 @@ int main(){
 
   swapon("/dev/nvme0n1p4", SWAP_FLAG_DISCARD);
 
-  launch_agetty();
+  launch_mingetty(mingetty1[0],mingetty1);
+  launch_mingetty(mingetty2[0],mingetty2);
 
   init_time = clock() - init_time;
   double time_taken = ((double)init_time)/CLOCKS_PER_SEC;

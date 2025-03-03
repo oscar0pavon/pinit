@@ -24,7 +24,11 @@ static char * const mount_proc_commnad[] = {"proc","/proc", "proc"};
 static char * const mount_dev_commnad[] = {"dev","/dev", "devtmpfs"};
 static char * const mount_pts_commnad[] = {"devpts","/dev/pts", "devpts"};
 
+static char * const mount_efivars_commnad[] = {"efivarfs","/sys/firmware/efi/efivars", "efivarfs"};
+
 static char * const mount_boot_commnad[] = {"/dev/nvme0n1p1","/boot", "vfat"};
+
+static char * const mount_disk_commnad[] = {"/dev/nvme0n1p5","/root/disk", "ext4"};
 
 static char * const mount_shm_commnad[] = {"tmpfs","/dev/shm", "tmpfs"};
 
@@ -33,6 +37,10 @@ static char * const mount_run_commnad[] = {"tmpfs","/run", "tmpfs"};
 static char * const mingetty1[] = {"/bin/mingetty", "--autologin=root","tty1",NULL};
 
 static char * const mingetty2[] = {"/bin/mingetty", "--autologin=root","tty2",NULL};
+
+
+static char * const udev_script[] = {"/udev.sh",NULL};
+
 
 //wifi
 #define DEV "wlan0"
@@ -95,6 +103,20 @@ void* execute_thread_command(void*command_line){
 		execvp(*command,command_line);
   } 
   return NULL;
+}
+
+static void launch_program(char* const command[]){
+  int result;
+
+  if(fork() == 0){
+		sigprocmask(SIG_UNBLOCK, &set_of_signals, NULL);
+		setsid();
+		result = execvp(command[0], command);
+    if(result == -1){
+      printf("Can't execvp %s\n",command[0]);
+    }
+		perror("execvp");
+  }
 }
 
 static void launch_mingetty(const char* mingetty_exec,char* const arguments[]){
@@ -184,6 +206,10 @@ int main(){
   pthread_t mount_thread;
   pthread_t mount_dev_thread;
 
+  struct MountCommand mount_run_struct = {.arguments = mount_run_commnad, 
+                                          .mode = 0}; 
+  pthread_create(&mount_thread, NULL , mount_threaded, &mount_run_struct);
+
   
   struct MountCommand mount_dev_struct; 
   mount_dev_struct.arguments = mount_dev_commnad;
@@ -204,12 +230,23 @@ int main(){
 
   pthread_join(mount_dev_thread,NULL);
   
+  struct MountCommand mount_efi_struct = {.arguments = mount_efivars_commnad, 
+                                          .mode = 0}; 
+
+  pthread_create(&mount_thread, NULL , mount_threaded, &mount_efi_struct);
 
   struct MountCommand mount_boot_struct = {.arguments = mount_boot_commnad, 
                                           .mode = 0}; 
 
   pthread_create(&mount_thread, NULL , mount_threaded, &mount_boot_struct);
 
+  struct MountCommand mount_disk_struct = {.arguments = mount_disk_commnad, 
+                                          .mode = 0}; 
+
+  pthread_create(&mount_thread, NULL , mount_threaded, &mount_disk_struct);
+
+
+  //launch_program(udev_script);
 
   symlink("/proc/self/fd/0","/dev/stdin");
   symlink("/proc/self/fd/1","/dev/stdout");
@@ -232,9 +269,6 @@ int main(){
   pthread_create(&mount_thread, NULL , mount_threaded, &mount_shm_struct);
 
 
-  struct MountCommand mount_run_struct = {.arguments = mount_run_commnad, 
-                                          .mode = 0}; 
-  pthread_create(&mount_thread, NULL , mount_threaded, &mount_run_struct);
 
   //wifi
   pthread_t ip_add_thread;

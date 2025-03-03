@@ -1,8 +1,8 @@
+#include <unistd.h>
 #include <pthread.h>
 #include <time.h>
-#define _XOPEN_SOURCE 200809L
+//#define _XOPEN_SOURCE 200809L
 #include <signal.h>
-#include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <stdio.h>
@@ -11,11 +11,21 @@
 #include <sys/mount.h>
 #include <sys/swap.h>
 
+#include <linux/reboot.h>
+#include <sys/reboot.h>
+
 #include <string.h>
 
+#include <stdlib.h>
+
 #define TIMEO	30
+//wifi
+#define DEV "wlan0"
 
 sigset_t set_of_signals;
+
+FILE* boot_time; 
+clock_t init_time; 
 
 int symlink(const char *target, const char *linkpath);
 
@@ -42,8 +52,6 @@ static char * const mingetty2[] = {"/bin/mingetty", "--autologin=root","tty2",NU
 static char * const udev_script[] = {"/udev.sh",NULL};
 
 
-//wifi
-#define DEV "wlan0"
 
 static char * const ip_set_up_command[] = {"/sbin/ip","link", "set" ,DEV, 
   "up", NULL};
@@ -60,6 +68,8 @@ static char * const ip_addr_lo_command[] = {"/sbin/ip","addr", "add" ,
 
 static char* const ip_lo_up[] = {"/sbin/ip","link", 
   "set", "lo", "up",  NULL};
+
+
 
 void wait_signal_for_close(int pid){
     
@@ -183,25 +193,7 @@ static void signal_reap(void)
 	alarm(TIMEO);
 }
 
-int main(){
-  
-  FILE* boot_time = fopen("boot_time","w");
-  if(!boot_time){
-    printf("Can't create boot file\n");
-  }
-  
-  clock_t init_time = clock();
-
-  if(getpid() != 1){
-    printf("Need to be PID 1\n");
-    _exit(1);
-  }
-
-  chdir("/");
-
-  sigfillset(&set_of_signals);
-  sigprocmask(SIG_BLOCK, &set_of_signals, NULL);
-  
+void initialize(){
 
   pthread_t mount_thread;
   pthread_t mount_dev_thread;
@@ -290,13 +282,46 @@ int main(){
   fprintf(boot_time,"init config time = %f seconds\n",time_taken);
 
   fclose(boot_time);
+}
+
+void reboot_system(){
+  sync();
+  reboot(LINUX_REBOOT_CMD_RESTART);
+}
+
+int main(){
+  
+  boot_time = fopen("boot_time","w");
+  if(!boot_time){
+    printf("Can't create boot file\n");
+  }
+  
+ init_time = clock();
+
+  if(getpid() != 1){
+    printf("Need to be PID 1\n");
+    _exit(1);
+  }
+
+  chdir("/");
+
+  sigfillset(&set_of_signals);
+  sigprocmask(SIG_BLOCK, &set_of_signals, NULL);
+  
+  initialize();
   
   int signal;
+
   while(1){
     alarm(30) ;
     sigwait(&set_of_signals,&signal);
     if(signal == SIGCHLD || signal == SIGALRM){
       signal_reap();
+    }
+    if(signal == SIGINT){
+      printf("reboot!!!!!!\n");
+      system("pkill X");
+      reboot_system();
     }
     
   }

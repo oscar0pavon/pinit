@@ -172,6 +172,10 @@ void initialize(){
   pthread_create(&mount_thread, NULL , mount_threaded, &mount_disk_struct);
 
 
+  struct MountCommand mount_disk2_struct = {.arguments = mount_disk2_commnad, 
+                                          .mode = 0}; 
+
+  pthread_create(&mount_thread, NULL , mount_threaded, &mount_disk2_struct);
   //launch_program(udev_script);
 
   symlink("/proc/self/fd/0","/dev/stdin");
@@ -201,15 +205,19 @@ void initialize(){
   pthread_create(&mount_thread, NULL , execute_thread_command, ip_set_up_command) ;
   pthread_create(&mount_thread, NULL , execute_thread_command, wpa_command) ;
   
+  
   set_ip(NULL);
 
   setup_loopback();
 
-  swapon("/dev/nvme0n1p4", SWAP_FLAG_DISCARD);
+  //swapon("/dev/nvme0n1p4", SWAP_FLAG_DISCARD);
 
   launch_mingetty(mingetty1[0],mingetty1);
   launch_mingetty(mingetty2[0],mingetty2);
 
+  //pthread_create(&mount_thread, NULL , execute_thread_command, pulseaudio);
+
+  //timing..
   init_time = clock() - init_time;
   double time_taken = ((double)init_time)/CLOCKS_PER_SEC;
 

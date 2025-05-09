@@ -10,7 +10,6 @@
 #include <sys/mount.h>
 #include <sys/swap.h>
 
-#include <linux/reboot.h>
 #include <sys/reboot.h>
 
 #include <string.h>
@@ -18,6 +17,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <stdbool.h>
+
+#define	LINUX_REBOOT_CMD_RESTART	0x01234567
 
 int symlink(const char *target, const char *linkpath);
 //wifi
@@ -33,6 +34,7 @@ static char * const mount_efivars_commnad[] = {"efivarfs","/sys/firmware/efi/efi
 static char * const mount_boot_commnad[] = {"/dev/nvme0n1p1","/boot", "vfat"};
 
 static char * const mount_disk_commnad[] = {"/dev/nvme0n1p5","/root/disk", "ext4"};
+static char * const mount_disk2_commnad[] = {"/dev/sda1","/disk2", "ext4"};
 
 static char * const mount_shm_commnad[] = {"tmpfs","/dev/shm", "tmpfs"};
 
@@ -41,6 +43,8 @@ static char * const mount_run_commnad[] = {"tmpfs","/run", "tmpfs"};
 static char * const mingetty1[] = {"/bin/mingetty", "--autologin=root","tty1",NULL};
 
 static char * const mingetty2[] = {"/bin/mingetty", "--autologin=root","tty2",NULL};
+
+static char * const pulseaudio[] = {"/bin/pulseaudio",NULL};
 
 
 static char * const udev_script[] = {"/udev.sh",NULL};

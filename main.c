@@ -63,13 +63,13 @@ static void launch_program(char* const command[]){
   }
 }
 
-static void launch_mingetty(const char* mingetty_exec,char* const arguments[]){
+static void launch_getty(const char* getty_exec,char* const arguments[]){
   int result;
 
   if(fork() == 0){
 		sigprocmask(SIG_UNBLOCK, &set_of_signals, NULL);
 		setsid();
-		result = execvp(mingetty_exec, arguments);
+		result = execvp(getty_exec, arguments);
     if(result == -1){
       printf("Can't execvp %s\n",mingetty1[0]);
     }
@@ -212,8 +212,8 @@ void initialize(){
 
   //swapon("/dev/nvme0n1p4", SWAP_FLAG_DISCARD);
 
-  launch_mingetty(mingetty1[0],mingetty1);
-  launch_mingetty(mingetty2[0],mingetty2);
+  launch_getty(mingetty1[0],mingetty1);
+  launch_getty(mingetty2[0],mingetty2);
 
   //pthread_create(&mount_thread, NULL , execute_thread_command, pulseaudio);
 

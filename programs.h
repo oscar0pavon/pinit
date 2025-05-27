@@ -40,9 +40,9 @@ static char * const mount_shm_commnad[] = {"tmpfs","/dev/shm", "tmpfs"};
 
 static char * const mount_run_commnad[] = {"tmpfs","/run", "tmpfs"};
 
-static char * const mingetty1[] = {"/bin/mingetty", "--autologin=root","tty1",NULL};
+static char * const mingetty1[] = {"/bin/pgetty", "--autologin=root","tty1",NULL};
 
-static char * const mingetty2[] = {"/bin/mingetty", "--autologin=root","tty2",NULL};
+static char * const mingetty2[] = {"/bin/pgetty", "--autologin=root","tty2",NULL};
 
 static char * const pulseaudio[] = {"/bin/pulseaudio",NULL};
 

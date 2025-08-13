@@ -35,6 +35,7 @@ static char * const mount_boot_commnad[] = {"/dev/nvme0n1p1","/boot", "vfat"};
 
 static char * const mount_disk_commnad[] = {"/dev/nvme0n1p5","/root/disk", "ext4"};
 static char * const mount_disk2_commnad[] = {"/dev/sda1","/disk2", "ext4"};
+static char * const mount_disk3_commnad[] = {"/dev/nvme1n1p1","/data", "ext4"};
 
 static char * const mount_shm_commnad[] = {"tmpfs","/dev/shm", "tmpfs"};
 

@@ -1,4 +1,5 @@
 #include "programs.h"
+#include <stdio.h>
 
 #define TIMEO	30
 
@@ -166,16 +167,27 @@ void initialize(){
 
   pthread_create(&mount_thread, NULL , mount_threaded, &mount_boot_struct);
 
-  struct MountCommand mount_disk_struct = {.arguments = mount_disk_commnad, 
-                                          .mode = 0}; 
+  //  
+  // mounting disks
+  //
 
-  pthread_create(&mount_thread, NULL , mount_threaded, &mount_disk_struct);
+  // struct MountCommand mount_disk_struct = {.arguments = mount_disk_commnad, 
+  //                                         .mode = 0}; 
+  //
+  // pthread_create(&mount_thread, NULL , mount_threaded, &mount_disk_struct);
 
 
   struct MountCommand mount_disk2_struct = {.arguments = mount_disk2_commnad, 
                                           .mode = 0}; 
 
   pthread_create(&mount_thread, NULL , mount_threaded, &mount_disk2_struct);
+  
+  struct MountCommand mount_disk3_struct = {.arguments = mount_disk3_commnad, 
+                                          .mode = 0}; 
+
+  pthread_create(&mount_thread, NULL , mount_threaded, &mount_disk3_struct);
+
+
   //launch_program(udev_script);
 
   symlink("/proc/self/fd/0","/dev/stdin");
@@ -232,6 +244,22 @@ void reboot_system(){
 }
 
 int main(){
+
+  printf("pinit\n");
+  
+  const char* config_name = "/etc/init";
+  FILE* config_file = fopen(config_name, "r");
+  int config_file_size = 0;
+
+  if(!config_file){
+    printf("Not configuration file exist\n");
+  }else{
+    struct stat config_stat;
+    if(stat(config_name,&config_stat) == 0){
+      config_file_size = config_stat.st_size;
+      printf("config file size %i\n",config_file_size);
+    }
+  }
   
   boot_time = fopen("boot_time","w");
   if(!boot_time){
@@ -253,6 +281,10 @@ int main(){
   initialize();
   
   int signal;
+
+  if(config_file){
+    fclose(config_file);
+  }
 
   while(1){
     alarm(30) ;

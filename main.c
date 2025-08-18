@@ -1,5 +1,6 @@
 #include "programs.h"
 #include <stdio.h>
+#include <string.h>
 
 #define TIMEO	30
 
@@ -243,6 +244,26 @@ void reboot_system(){
   reboot(LINUX_REBOOT_CMD_RESTART);
 }
 
+void parse_configuration(char* file_buffer){
+  printf("parsing init\n");
+  int char_count = 0;
+  while(*file_buffer){
+    if(*file_buffer != '\n'){
+    }
+
+    if (*file_buffer == ' ' || *file_buffer == '\n') {
+
+      printf("char count %i\n", char_count);
+      char_count = 0;
+
+    } else {
+      char_count++;
+    }
+
+    file_buffer++;
+  }
+}
+
 int main(){
 
   printf("pinit\n");
@@ -251,6 +272,8 @@ int main(){
   FILE* config_file = fopen(config_name, "r");
   int config_file_size = 0;
 
+  char* file_buffer = NULL;
+
   if(!config_file){
     printf("Not configuration file exist\n");
   }else{
@@ -258,6 +281,27 @@ int main(){
     if(stat(config_name,&config_stat) == 0){
       config_file_size = config_stat.st_size;
       printf("config file size %i\n",config_file_size);
+
+      file_buffer = (char*)malloc(config_file_size);
+
+      memset(file_buffer, 0, config_file_size);
+
+      int bytes_read = fread(file_buffer, 1, config_file_size, config_file);
+      if(bytes_read != config_file_size){
+        printf("Error reading init file\n");
+      }
+
+      file_buffer[config_file_size] = '\0';
+
+      if(!file_buffer){
+        printf("Can't allocate memory for file\n");
+      }else{
+        parse_configuration(file_buffer);
+      }
+
+      free(file_buffer);
+
+      fclose(config_file);
     }
   }
   

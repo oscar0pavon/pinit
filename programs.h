@@ -47,6 +47,7 @@ static char * const mingetty2[] = {"/bin/pgetty", "--autologin=root","tty2",NULL
 
 static char * const pulseaudio[] = {"/bin/pulseaudio",NULL};
 
+static char * const gpu_driver[] = {"/usr/sbin/modprobe", "amdgpu",NULL};
 
 static char * const udev_script[] = {"/udev.sh",NULL};
 

@@ -224,11 +224,14 @@ void initialize(){
   setup_loopback();
 
   //swapon("/dev/nvme0n1p4", SWAP_FLAG_DISCARD);
+  
 
   launch_getty(mingetty1[0],mingetty1);
   launch_getty(mingetty2[0],mingetty2);
 
   //pthread_create(&mount_thread, NULL , execute_thread_command, pulseaudio);
+
+  //launch_program(gpu_driver);
 
   //timing..
   init_time = clock() - init_time;
@@ -267,6 +270,8 @@ void parse_configuration(char* file_buffer){
 int main(){
 
   printf("pinit\n");
+
+  system("modprobe amdgpu");
   
   const char* config_name = "/etc/init";
   FILE* config_file = fopen(config_name, "r");

@@ -1,6 +1,7 @@
 #include "programs.h"
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #define TIMEO	30
 
@@ -228,6 +229,7 @@ void initialize(){
 
   launch_getty(mingetty1[0],mingetty1);
   launch_getty(mingetty2[0],mingetty2);
+  launch_getty(mingetty3[0],mingetty3);
 
   //pthread_create(&mount_thread, NULL , execute_thread_command, pulseaudio);
 
@@ -328,6 +330,11 @@ int main(){
   sigprocmask(SIG_BLOCK, &set_of_signals, NULL);
   
   initialize();
+
+  const char* hostname = "smtp.pavon.com.py";
+  size_t hostname_char_len = strlen(hostname);
+
+  sethostname(hostname, hostname_char_len);
   
   int signal;
 
